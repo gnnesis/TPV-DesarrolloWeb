@@ -1,0 +1,11 @@
+# Archivos y directorios a ignorar en Node.js
+node_modules/
+
+# Directorio de entorno virtual de Python
+venv/
+
+# Cache de compilación de Python (archivos .pyc)
+__pycache__/
+
+# Opcional: otros archivos de caché comunes de Python
+*.pyc

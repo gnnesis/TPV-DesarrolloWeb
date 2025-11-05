@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Productos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4">Gestión de Productos</h1>
+
+        <!-- Formulario para nuevo producto -->
+        <div class="card mb-4">
+            <div class="card-header">
+                Nuevo Producto
+            </div>
+            <div class="card-body">
+                <form id="productoForm">
+                    <div class="mb-3">
+                        <label for="nombre" class="form-label">Nombre del Producto</label>
+                        <input type="text" class="form-control" id="nombre" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="precio" class="form-label">Precio</label>
+                        <input type="number" step="0.01" class="form-control" id="precio" required>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="disponible" checked>
+                        <label class="form-check-label" for="disponible">Disponible</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Crear Producto</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Lista de productos -->
+        <div class="card">
+            <div class="card-header">
+                Lista de Productos
+            </div>
+            <div class="card-body">
+                <div id="listaProductos"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Función para cargar los productos
+        async function cargarProductos() {
+            try {
+                const response = await fetch('http://localhost:5002/productos');
+                const productos = await response.json();
+                
+                const listaProductos = document.getElementById('listaProductos');
+                if (productos.length === 0) {
+                    listaProductos.innerHTML = '<p class="text-muted">No hay productos registrados.</p>';
+                    return;
+                }
+
+                const tabla = `
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>Precio</th>
+                                <th>Disponible</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${productos.map(producto => `
+                                <tr>
+                                    <td>${producto._id}</td>
+                                    <td>${producto.nombre}</td>
+                                    <td>${producto.precio.toFixed(2)}€</td>
+                                    <td>
+                                        <span class="badge ${producto.disponible ? 'bg-success' : 'bg-danger'}">
+                                            ${producto.disponible ? 'Sí' : 'No'}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button onclick="eliminarProducto('${producto._id}')" class="btn btn-danger btn-sm">
+                                            Eliminar
+                                        </button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                listaProductos.innerHTML = tabla;
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        // Función para crear un nuevo producto
+        async function crearProducto(event) {
+            event.preventDefault();
+            
+            const producto = {
+                nombre: document.getElementById('nombre').value,
+                precio: parseFloat(document.getElementById('precio').value),
+                disponible: document.getElementById('disponible').checked
+            };
+
+            try {
+                const response = await fetch('http://localhost:5002/productos', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(producto)
+                });
+
+                if (response.ok) {
+                    document.getElementById('productoForm').reset();
+                    cargarProductos();
+                    alert('Producto creado con éxito!');
+                } else {
+                    alert('Error al crear el producto');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al crear el producto');
+            }
+        }
+
+        // Función para eliminar un producto
+        async function eliminarProducto(id) {
+            if (!confirm('¿Estás seguro de que quieres eliminar este producto?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`http://localhost:5002/productos/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    cargarProductos();
+                    alert('Producto eliminado con éxito!');
+                } else {
+                    alert('Error al eliminar el producto');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al eliminar el producto');
+            }
+        }
+
+        // Event listeners
+        document.getElementById('productoForm').addEventListener('submit', crearProducto);
+        
+        // Cargar productos al iniciar
+        cargarProductos();
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
