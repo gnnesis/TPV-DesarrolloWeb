@@ -28,16 +28,25 @@ router.get('/:id', async (req, res) => {
 
 // Crear un nuevo producto
 router.post('/', async (req, res) => {
-    const producto = new Producto({
-        nombre: req.body.nombre,
-        precio: req.body.precio,
-        disponible: req.body.disponible
-    });
-
     try {
+        console.log('📥 Recibiendo producto:', req.body);
+        
+        if (!req.body.nombre || req.body.precio === undefined) {
+            return res.status(400).json({ message: 'Nombre y precio son requeridos' });
+        }
+
+        const producto = new Producto({
+            nombre: req.body.nombre,
+            precio: req.body.precio,
+            stock: req.body.stock !== undefined ? req.body.stock : 0,
+            disponible: req.body.disponible !== undefined ? req.body.disponible : true
+        });
+
         const nuevoProducto = await producto.save();
+        console.log('✅ Producto creado:', nuevoProducto);
         res.status(201).json(nuevoProducto);
     } catch (error) {
+        console.error('❌ Error al crear producto:', error.message);
         res.status(400).json({ message: error.message });
     }
 });
@@ -48,7 +57,8 @@ router.put('/:id', async (req, res) => {
         const producto = await Producto.findById(req.params.id);
         if (producto) {
             producto.nombre = req.body.nombre || producto.nombre;
-            producto.precio = req.body.precio || producto.precio;
+            producto.precio = req.body.precio !== undefined ? req.body.precio : producto.precio;
+            producto.stock = req.body.stock !== undefined ? req.body.stock : producto.stock;
             producto.disponible = req.body.disponible !== undefined ? req.body.disponible : producto.disponible;
 
             const productoActualizado = await producto.save();

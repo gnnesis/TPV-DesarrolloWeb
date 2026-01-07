@@ -1,11 +1,53 @@
-# Archivos y directorios a ignorar en Node.js
+# ============ Node.js ============
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
 
-# Directorio de entorno virtual de Python
+# ============ Python ============
+# Entornos virtuales
 venv/
+env/
+ENV/
+.venv
 
-# Cache de compilación de Python (archivos .pyc)
+# Cache de Python
 __pycache__/
-
-# Opcional: otros archivos de caché comunes de Python
+*.py[cod]
+*$py.class
 *.pyc
+*.pyo
+
+# Distribuciones de Python
+*.egg
+*.egg-info/
+dist/
+build/
+
+# ============ IDEs y Editores ============
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ============ Logs ============
+*.log
+logs/
+
+# ============ Base de datos ============
+*.db
+*.sqlite
+*.sqlite3
+
+# ============ Variables de entorno ============
+.env
+.env.local
+.env.*.local
+
+# ============ Otros ============
+.cache/
+*.bak
+*.tmp

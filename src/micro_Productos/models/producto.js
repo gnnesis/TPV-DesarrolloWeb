@@ -11,6 +11,12 @@ const productoSchema = new mongoose.Schema({
         required: true,
         min: 0
     },
+    stock: {
+        type: Number,
+        required: true,
+        default: 0,
+        min: 0
+    },
     disponible: {
         type: Boolean,
         default: true

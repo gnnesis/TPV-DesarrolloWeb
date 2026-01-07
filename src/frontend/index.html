@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TPV GB - Sistema de Gestión</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Contenedor de notificaciones -->
+    <div class="toast-container" id="toast-container"></div>
+    
+    <!-- Modal de confirmación -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modal-title">Confirmar acción</h3>
+            </div>
+            <p class="modal-message" id="modal-message">¿Estás seguro?</p>
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-cancel" id="modal-cancel">Cancelar</button>
+                <button class="modal-btn modal-btn-confirm" id="modal-confirm">Eliminar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de pago -->
+    <div class="modal-overlay" id="modal-pago">
+        <div class="modal modal-pago">
+            <div class="modal-header">
+                <h3 class="modal-title">Procesar Pago</h3>
+            </div>
+            
+            <div class="pago-info">
+                <div class="pago-mesa" id="pago-mesa">Mesa 1</div>
+                <div class="pago-total" id="pago-total">0.00 €</div>
+            </div>
+
+            <div class="metodo-pago">
+                <button class="metodo-btn" id="btn-tarjeta" onclick="seleccionarMetodo('tarjeta')">
+                    <span class="metodo-label">Tarjeta</span>
+                </button>
+                <button class="metodo-btn" id="btn-efectivo" onclick="seleccionarMetodo('efectivo')">
+                    <span class="metodo-label">Efectivo</span>
+                </button>
+            </div>
+
+            <div class="efectivo-section" id="efectivo-section" style="display: none;">
+                <label>Dinero recibido:</label>
+                <input type="number" id="dinero-recibido" placeholder="0.00" step="0.01" min="0">
+                <div class="cambio-info" id="cambio-info" style="display: none;">
+                    <span>Cambio:</span>
+                    <span class="cambio-cantidad" id="cambio-cantidad">0.00 €</span>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-cancel" onclick="cerrarModalPago()">Cancelar</button>
+                <button class="modal-btn modal-btn-confirm" id="btn-confirmar-pago" onclick="confirmarPago()" disabled>Confirmar Pago</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de ticket -->
+    <div class="modal-overlay" id="modal-ticket">
+        <div class="modal modal-ticket">
+            <div class="ticket" id="ticket-content">
+                <!-- Contenido del ticket se genera dinámicamente -->
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-confirm" onclick="cerrarTicket()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Header -->
+    <div class="header">
+        <div class="header-content">
+            <div class="logo">TPV GB</div>
+            <div class="nav-tabs">
+                <button class="nav-tab active" onclick="cambiarTab('tpv')">Punto de Venta</button>
+                <button class="nav-tab" onclick="cambiarTab('productos')">Productos</button>
+                <button class="nav-tab" onclick="cambiarTab('metricas')">Métricas</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Tab: TPV -->
+        <div id="tab-tpv" class="tab-content active">
+            <div class="tpv-layout">
+                <!-- Productos -->
+                <div class="card">
+                    <h2 class="card-title">Productos</h2>
+                    <div id="productos-grid" class="productos-grid">
+                        <div class="loading">Cargando productos...</div>
+                    </div>
+                </div>
+
+                <!-- Comanda -->
+                <div class="card comanda-section">
+                    <h2 class="card-title">Comanda</h2>
+                    
+                    <div class="mesa-selector">
+                        <button class="mesa-btn active" data-mesa="Mesa 1">Mesa 1</button>
+                        <button class="mesa-btn" data-mesa="Mesa 2">Mesa 2</button>
+                        <button class="mesa-btn" data-mesa="Mesa 3">Mesa 3</button>
+                        <button class="mesa-btn" data-mesa="Mesa 4">Mesa 4</button>
+                        <button class="mesa-btn" data-mesa="Barra">Barra</button>
+                        <button class="mesa-btn" data-mesa="Terraza">Terraza</button>
+                    </div>
+
+                    <!-- Numpad para cantidad -->
+                    <div style="margin-bottom: 1rem;">
+                        <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Cantidad</label>
+                        <input type="text" id="cantidad-display" class="cantidad-input" value="0" readonly>
+                        <div class="numpad">
+                            <button class="numpad-btn" onclick="numpadClick('1')">1</button>
+                            <button class="numpad-btn" onclick="numpadClick('2')">2</button>
+                            <button class="numpad-btn" onclick="numpadClick('3')">3</button>
+                            <button class="numpad-btn" onclick="numpadClick('4')">4</button>
+                            <button class="numpad-btn" onclick="numpadClick('5')">5</button>
+                            <button class="numpad-btn" onclick="numpadClick('6')">6</button>
+                            <button class="numpad-btn" onclick="numpadClick('7')">7</button>
+                            <button class="numpad-btn" onclick="numpadClick('8')">8</button>
+                            <button class="numpad-btn" onclick="numpadClick('9')">9</button>
+                            <button class="numpad-btn danger" onclick="numpadClear()">C</button>
+                            <button class="numpad-btn" onclick="numpadClick('0')">0</button>
+                            <button class="numpad-btn action" onclick="numpadBackspace()">←</button>
+                        </div>
+                    </div>
+
+                    <div id="comanda-items" class="comanda-items">
+                        <div class="empty-state">
+                            <p>No hay productos en la comanda</p>
+                        </div>
+                    </div>
+
+                    <div class="comanda-total">
+                        <div class="total-row">
+                            <span>Total:</span>
+                            <span id="comanda-total">0.00 €</span>
+                        </div>
+                        <button class="btn btn-primary" onclick="procesarVenta()">
+                            Procesar Venta
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Productos -->
+        <div id="tab-productos" class="tab-content">
+            <div class="card">
+                <h2 class="card-title">Gestión de Productos</h2>
+                
+                <div class="producto-form">
+                    <div class="form-group">
+                        <label class="form-label">Nombre</label>
+                        <input type="text" id="producto-nombre" class="form-input" placeholder="Nombre del producto">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Precio (€)</label>
+                        <input type="number" id="producto-precio" class="form-input" placeholder="0.00" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Stock</label>
+                        <input type="number" id="producto-stock" class="form-input" placeholder="0">
+                    </div>
+                    <button class="btn btn-success" onclick="agregarProducto()">Agregar Producto</button>
+                </div>
+
+                <h3 class="card-title">Lista de Productos</h3>
+                <div id="productos-lista" class="productos-lista">
+                    <div class="loading">Cargando productos...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Métricas -->
+        <div id="tab-metricas" class="tab-content">
+            <div class="card">
+                <h2 class="card-title">Métricas y Estadísticas</h2>
+                
+                <div class="metricas-grid" id="metricas-cards">
+                    <div class="loading">Cargando métricas...</div>
+                </div>
+
+                <div class="graficas-section">
+                    <div class="grafica-card">
+                        <h3>Ventas por Mesa</h3>
+                        <canvas id="grafica-mesas"></canvas>
+                    </div>
+                    <div class="grafica-card">
+                        <h3>Productos Más Vendidos</h3>
+                        <canvas id="grafica-productos"></canvas>
+                    </div>
+                </div>
+
+                <h3 class="card-title">Ventas Recientes</h3>
+                <div id="ventas-lista" class="ventas-lista">
+                    <div class="loading">Cargando ventas...</div>
+                </div>
+                <button class="btn btn-primary" onclick="mostrarHistorialCompleto()" style="margin-top: 1rem; width: 100%;">Ver Historial Completo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de historial completo -->
+    <div class="modal-overlay" id="modal-historial">
+        <div class="modal modal-historial">
+            <div class="modal-header">
+                <h3 class="modal-title">Historial de Ventas</h3>
+            </div>
+            <div class="historial-content" id="historial-content">
+                <div class="loading">Cargando historial...</div>
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-confirm" onclick="cerrarHistorial()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Estado global
+        const state = {
+            productos: [],
+            comandasPorMesa: {
+                'Mesa 1': [],
+                'Mesa 2': [],
+                'Mesa 3': [],
+                'Mesa 4': [],
+                'Barra': [],
+                'Terraza': []
+            },
+            mesaActual: 'Mesa 1',
+            ventas: [],
+            cantidadActual: 0
+        };
+
+        // Getter para la comanda actual
+        function getComandaActual() {
+            return state.comandasPorMesa[state.mesaActual];
+        }
+
+        // Sistema de notificaciones
+        function mostrarNotificacion(mensaje, tipo = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${tipo}`;
+            
+            const iconos = {
+                success: '✓',
+                error: '✕',
+                warning: '⚠',
+                info: 'ℹ'
+            };
+            
+            toast.innerHTML = `
+                <span class="toast-icon">${iconos[tipo]}</span>
+                <span class="toast-message">${mensaje}</span>
+            `;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease-in';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Sistema de modal de confirmación
+        let modalResolve = null;
+
+        function mostrarModal(titulo, mensaje) {
+            return new Promise((resolve) => {
+                modalResolve = resolve;
+                const overlay = document.getElementById('modal-overlay');
+                document.getElementById('modal-title').textContent = titulo;
+                document.getElementById('modal-message').textContent = mensaje;
+                overlay.classList.add('active');
+                
+                // Focus en el botón de confirmar
+                setTimeout(() => {
+                    document.getElementById('modal-confirm').focus();
+                }, 100);
+            });
+        }
+
+        function cerrarModal(confirmado) {
+            const overlay = document.getElementById('modal-overlay');
+            overlay.classList.remove('active');
+            if (modalResolve) {
+                modalResolve(confirmado);
+                modalResolve = null;
+            }
+        }
+
+        // Event listeners para el modal
+        document.getElementById('modal-confirm').addEventListener('click', () => cerrarModal(true));
+        document.getElementById('modal-cancel').addEventListener('click', () => cerrarModal(false));
+        document.getElementById('modal-overlay').addEventListener('click', (e) => {
+            if (e.target.id === 'modal-overlay') cerrarModal(false);
+        });
+
+        // Soporte de teclado para los modales
+        document.addEventListener('keydown', (e) => {
+            const overlay = document.getElementById('modal-overlay');
+            const modalPago = document.getElementById('modal-pago');
+            const modalTicket = document.getElementById('modal-ticket');
+            
+            if (overlay.classList.contains('active')) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    cerrarModal(true);
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    cerrarModal(false);
+                }
+            } else if (modalPago.classList.contains('active')) {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    cerrarModalPago();
+                }
+            } else if (modalTicket.classList.contains('active')) {
+                if (e.key === 'Escape' || e.key === 'Enter') {
+                    e.preventDefault();
+                    cerrarTicket();
+                }
+            }
+        });
+
+        // Funciones del Numpad
+        function numpadClick(num) {
+            const display = document.getElementById('cantidad-display');
+            if (display.value === '0') {
+                display.value = num;
+            } else {
+                display.value += num;
+            }
+            state.cantidadActual = parseInt(display.value) || 0;
+        }
+
+        function numpadClear() {
+            document.getElementById('cantidad-display').value = '0';
+            state.cantidadActual = 0;
+        }
+
+        function numpadBackspace() {
+            const display = document.getElementById('cantidad-display');
+            display.value = display.value.slice(0, -1) || '0';
+            state.cantidadActual = parseInt(display.value) || 0;
+        }
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', () => {
+            inicializarMesas();
+            cargarProductos();
+            
+            // Configurar listener para cálculo de cambio
+            const inputDinero = document.getElementById('dinero-recibido');
+            if (inputDinero) {
+                inputDinero.addEventListener('input', () => {
+                    const recibido = parseFloat(inputDinero.value) || 0;
+                    const cambio = recibido - totalVenta;
+                    
+                    if (cambio >= 0) {
+                        document.getElementById('cambio-info').style.display = 'flex';
+                        document.getElementById('cambio-cantidad').textContent = cambio.toFixed(2) + ' €';
+                        document.getElementById('btn-confirmar-pago').disabled = false;
+                    } else {
+                        document.getElementById('cambio-info').style.display = 'none';
+                        document.getElementById('btn-confirmar-pago').disabled = true;
+                    }
+                });
+            }
+        });
+
+        // Cambiar tabs
+        function cambiarTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            event.target.classList.add('active');
+
+            if (tab === 'productos') cargarProductosLista();
+            if (tab === 'metricas') {
+                cargarVentas();
+                cargarMetricas();
+            }
+        }
+
+        // Mesas
+        function inicializarMesas() {
+            document.querySelectorAll('.mesa-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.mesa-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    state.mesaActual = btn.dataset.mesa;
+                    
+                    // Actualizar la vista de la comanda al cambiar de mesa
+                    renderComanda();
+                    actualizarIndicadoresMesas();
+                });
+            });
+            actualizarIndicadoresMesas();
+        }
+
+        // Actualizar indicadores visuales de mesas con comandas
+        function actualizarIndicadoresMesas() {
+            document.querySelectorAll('.mesa-btn').forEach(btn => {
+                const mesa = btn.dataset.mesa;
+                const comanda = state.comandasPorMesa[mesa];
+                const tieneComanda = comanda && comanda.length > 0;
+                
+                if (tieneComanda) {
+                    btn.classList.add('con-comanda');
+                    const total = comanda.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
+                    btn.setAttribute('data-total', total.toFixed(2) + '€');
+                } else {
+                    btn.classList.remove('con-comanda');
+                    btn.removeAttribute('data-total');
+                }
+            });
+        }
+
+        // Cargar productos
+        async function cargarProductos() {
+            try {
+                const response = await fetch('/api/productos');
+                state.productos = await response.json();
+                renderProductos();
+            } catch (error) {
+                console.error('Error al cargar productos:', error);
+                document.getElementById('productos-grid').innerHTML = 
+                    '<div class="empty-state">Error al cargar productos</div>';
+            }
+        }
+
+        function renderProductos() {
+            const grid = document.getElementById('productos-grid');
+            
+            if (state.productos.length === 0) {
+                grid.innerHTML = '<div class="empty-state">No hay productos disponibles</div>';
+                return;
+            }
+
+            grid.innerHTML = state.productos.map(p => `
+                <div class="producto-card" onclick="agregarAComanda('${p._id}')">
+                    <div class="producto-nombre">${p.nombre}</div>
+                    <div class="producto-precio">${p.precio.toFixed(2)} €</div>
+                    <div class="producto-stock">Stock: ${p.stock}</div>
+                </div>
+            `).join('');
+        }
+
+        // Comanda
+        function agregarAComanda(productoId) {
+            const producto = state.productos.find(p => p._id === productoId);
+            const cantidadSolicitada = state.cantidadActual;
+            
+            // Si la cantidad es 0, no hacer nada
+            if (cantidadSolicitada === 0) {
+                mostrarNotificacion('Selecciona una cantidad en el numpad', 'warning');
+                return;
+            }
+            
+            if (!producto || producto.stock <= 0) {
+                mostrarNotificacion('Producto sin stock', 'warning');
+                return;
+            }
+
+            if (cantidadSolicitada > producto.stock) {
+                mostrarNotificacion(`Stock insuficiente. Disponible: ${producto.stock}`, 'warning');
+                return;
+            }
+
+            const comandaActual = getComandaActual();
+            const itemExistente = comandaActual.find(i => i.producto_id === productoId);
+            
+            if (itemExistente) {
+                const nuevaCantidad = itemExistente.cantidad + cantidadSolicitada;
+                if (nuevaCantidad <= producto.stock) {
+                    itemExistente.cantidad = nuevaCantidad;
+                } else {
+                    mostrarNotificacion(`Stock insuficiente. Disponible: ${producto.stock}`, 'warning');
+                    return;
+                }
+            } else {
+                comandaActual.push({
+                    producto_id: productoId,
+                    nombre: producto.nombre,
+                    precio: producto.precio,
+                    cantidad: cantidadSolicitada
+                });
+            }
+            
+            // Resetear cantidad a 1
+            numpadClear();
+            renderComanda();
+            actualizarIndicadoresMesas();
+        }
+
+        function cambiarCantidad(productoId, delta) {
+            const comandaActual = getComandaActual();
+            const item = comandaActual.find(i => i.producto_id === productoId);
+            if (!item) return;
+
+            item.cantidad += delta;
+            
+            if (item.cantidad <= 0) {
+                const index = comandaActual.findIndex(i => i.producto_id === productoId);
+                comandaActual.splice(index, 1);
+            }
+            
+            renderComanda();
+            actualizarIndicadoresMesas();
+        }
+
+        function renderComanda() {
+            const container = document.getElementById('comanda-items');
+            const comandaActual = getComandaActual();
+            
+            if (comandaActual.length === 0) {
+                container.innerHTML = '<div class="empty-state">No hay productos en la comanda</div>';
+                document.getElementById('comanda-total').textContent = '0.00 €';
+                return;
+            }
+
+            container.innerHTML = comandaActual.map(item => `
+                <div class="comanda-item">
+                    <div class="item-info">
+                        <div class="item-nombre">${item.nombre}</div>
+                        <div class="item-precio">${item.precio.toFixed(2)} € x ${item.cantidad}</div>
+                    </div>
+                    <div class="item-cantidad">
+                        <button class="qty-btn" onclick="cambiarCantidad('${item.producto_id}', -1)">-</button>
+                        <span>${item.cantidad}</span>
+                        <button class="qty-btn" onclick="cambiarCantidad('${item.producto_id}', 1)">+</button>
+                    </div>
+                </div>
+            `).join('');
+
+            const total = comandaActual.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
+            document.getElementById('comanda-total').textContent = total.toFixed(2) + ' €';
+        }
+
+        // Procesar venta
+        let metodoPagoSeleccionado = null;
+        let totalVenta = 0;
+
+        async function procesarVenta() {
+            const comandaActual = getComandaActual();
+            
+            if (comandaActual.length === 0) {
+                mostrarNotificacion('La comanda está vacía', 'warning');
+                return;
+            }
+
+            totalVenta = comandaActual.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
+            
+            // Mostrar modal de pago
+            document.getElementById('pago-mesa').textContent = state.mesaActual;
+            document.getElementById('pago-total').textContent = totalVenta.toFixed(2) + ' €';
+            document.getElementById('modal-pago').classList.add('active');
+            
+            // Reset
+            metodoPagoSeleccionado = null;
+            document.getElementById('efectivo-section').style.display = 'none';
+            document.getElementById('dinero-recibido').value = '';
+            document.getElementById('cambio-info').style.display = 'none';
+            document.getElementById('btn-confirmar-pago').disabled = true;
+            document.querySelectorAll('.metodo-btn').forEach(btn => btn.classList.remove('selected'));
+        }
+
+        function seleccionarMetodo(metodo) {
+            metodoPagoSeleccionado = metodo;
+            
+            // Actualizar UI
+            document.querySelectorAll('.metodo-btn').forEach(btn => btn.classList.remove('selected'));
+            document.getElementById(`btn-${metodo}`).classList.add('selected');
+            
+            if (metodo === 'efectivo') {
+                document.getElementById('efectivo-section').style.display = 'block';
+                document.getElementById('btn-confirmar-pago').disabled = true;
+                document.getElementById('dinero-recibido').focus();
+            } else {
+                document.getElementById('efectivo-section').style.display = 'none';
+                document.getElementById('btn-confirmar-pago').disabled = false;
+            }
+        }
+
+        function cerrarModalPago() {
+            document.getElementById('modal-pago').classList.remove('active');
+        }
+
+        async function confirmarPago() {
+            const comandaActual = getComandaActual();
+            const dineroRecibido = metodoPagoSeleccionado === 'efectivo' ? parseFloat(document.getElementById('dinero-recibido').value) : totalVenta;
+            const cambio = dineroRecibido - totalVenta;
+            
+            const venta = {
+                mesa: state.mesaActual,
+                total: totalVenta,
+                comandas: comandaActual.map(item => ({
+                    producto_id: item.producto_id,
+                    cantidad: item.cantidad
+                }))
+            };
+
+            try {
+                const response = await fetch('/api/ventas', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(venta)
+                });
+
+                if (response.ok) {
+                    cerrarModalPago();
+                    
+                    // Generar ticket
+                    generarTicket(comandaActual, totalVenta, metodoPagoSeleccionado, dineroRecibido, cambio);
+                    
+                    // Limpiar la comanda de esta mesa específica
+                    state.comandasPorMesa[state.mesaActual] = [];
+                    renderComanda();
+                    actualizarIndicadoresMesas();
+                    cargarProductos();
+                    
+                    mostrarNotificacion(`Venta procesada correctamente`, 'success');
+                } else {
+                    mostrarNotificacion('Error al procesar la venta', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarNotificacion('Error al conectar con el servidor', 'error');
+            }
+        }
+
+        function generarTicket(items, total, metodo, recibido, cambio) {
+            const ahora = new Date();
+            const fecha = ahora.toLocaleDateString('es-ES');
+            const hora = ahora.toLocaleTimeString('es-ES');
+            
+            const ticketHTML = `
+                <div class="ticket-header">
+                    <div class="ticket-logo">🏪</div>
+                    <div class="ticket-title">TPV SISTEMA</div>
+                    <div class="ticket-subtitle">Sistema de Punto de Venta</div>
+                </div>
+                
+                <div class="ticket-info">
+                    <div class="ticket-info-row">
+                        <span>Fecha:</span>
+                        <span>${fecha}</span>
+                    </div>
+                    <div class="ticket-info-row">
+                        <span>Hora:</span>
+                        <span>${hora}</span>
+                    </div>
+                    <div class="ticket-info-row">
+                        <span>Mesa:</span>
+                        <span><strong>${state.mesaActual}</strong></span>
+                    </div>
+                </div>
+                
+                <div class="ticket-items">
+                    ${items.map(item => `
+                        <div class="ticket-item">
+                            <span class="ticket-item-desc">${item.nombre}</span>
+                            <span class="ticket-item-qty">x${item.cantidad}</span>
+                            <span class="ticket-item-price">${(item.precio * item.cantidad).toFixed(2)} €</span>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <div class="ticket-total">
+                    <div class="ticket-total-row final">
+                        <span>TOTAL:</span>
+                        <span>${total.toFixed(2)} €</span>
+                    </div>
+                </div>
+                
+                <div class="ticket-pago">
+                    <div class="ticket-pago-row">
+                        <span>Método de pago:</span>
+                        <span><strong>${metodo === 'tarjeta' ? 'Tarjeta' : 'Efectivo'}</strong></span>
+                    </div>
+                    ${metodo === 'efectivo' ? `
+                        <div class="ticket-pago-row">
+                            <span>Recibido:</span>
+                            <span>${recibido.toFixed(2)} €</span>
+                        </div>
+                        <div class="ticket-pago-row">
+                            <span>Cambio:</span>
+                            <span><strong>${cambio.toFixed(2)} €</strong></span>
+                        </div>
+                    ` : ''}
+                </div>
+                
+                <div class="ticket-footer">
+                    <p>¡Gracias por su visita!</p>
+                    <p>Ticket #${Date.now().toString().slice(-6)}</p>
+                </div>
+            `;
+            
+            document.getElementById('ticket-content').innerHTML = ticketHTML;
+            document.getElementById('modal-ticket').classList.add('active');
+        }
+
+        function cerrarTicket() {
+            document.getElementById('modal-ticket').classList.remove('active');
+        }
+
+        // Gestión de productos
+        async function agregarProducto() {
+            const nombre = document.getElementById('producto-nombre').value;
+            const precio = parseFloat(document.getElementById('producto-precio').value);
+            const stock = parseInt(document.getElementById('producto-stock').value);
+
+            if (!nombre || isNaN(precio) || precio < 0 || isNaN(stock) || stock < 0) {
+                mostrarNotificacion('Por favor completa todos los campos correctamente', 'warning');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/productos', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nombre, precio, stock })
+                });
+
+                if (response.ok) {
+                    mostrarNotificacion('Producto agregado exitosamente', 'success');
+                    document.getElementById('producto-nombre').value = '';
+                    document.getElementById('producto-precio').value = '';
+                    document.getElementById('producto-stock').value = '';
+                    await cargarProductos();
+                    cargarProductosLista();
+                } else {
+                    const error = await response.json();
+                    mostrarNotificacion('Error al agregar producto: ' + (error.message || 'Error desconocido'), 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarNotificacion('Error al agregar producto: ' + error.message, 'error');
+            }
+        }
+
+        async function cargarProductosLista() {
+            try {
+                const response = await fetch('/api/productos');
+                state.productos = await response.json();
+                
+                const lista = document.getElementById('productos-lista');
+                
+                if (state.productos.length === 0) {
+                    lista.innerHTML = '<div class="empty-state">No hay productos</div>';
+                    return;
+                }
+
+                lista.innerHTML = state.productos.map(p => `
+                    <div class="producto-item">
+                        <div class="producto-item-info">
+                            <h3>${p.nombre}</h3>
+                            <p>Precio: ${p.precio.toFixed(2)} € | Stock: ${p.stock}</p>
+                        </div>
+                        <div class="producto-actions">
+                            <button class="btn btn-danger" onclick="eliminarProducto('${p._id}')">Eliminar</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error al cargar productos:', error);
+            }
+        }
+
+        async function eliminarProducto(id) {
+            const confirmado = await mostrarModal(
+                '¿Eliminar producto?',
+                'Esta acción no se puede deshacer. Presiona Enter para confirmar o Escape para cancelar.'
+            );
+            
+            if (!confirmado) return;
+
+            try {
+                const response = await fetch(`/api/productos/${id}`, { method: 'DELETE' });
+                if (response.ok) {
+                    mostrarNotificacion('Producto eliminado exitosamente', 'success');
+                    await cargarProductos();
+                    await cargarProductosLista();
+                } else {
+                    mostrarNotificacion('Error al eliminar producto', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarNotificacion('Error al conectar con el servidor', 'error');
+            }
+        }
+
+        // Métricas
+        async function cargarVentas() {
+            try {
+                const response = await fetch('/api/ventas');
+                state.ventas = await response.json();
+                renderVentas();
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        function renderVentas() {
+            const lista = document.getElementById('ventas-lista');
+            
+            if (state.ventas.length === 0) {
+                lista.innerHTML = '<div class="empty-state">No hay ventas registradas</div>';
+                return;
+            }
+
+            // Solo las 5 últimas
+            lista.innerHTML = state.ventas.slice(0, 5).map((v, index) => `
+                <div class="venta-item clickeable" onclick="mostrarTicketVenta(${index})">
+                    <div class="venta-header">
+                        <span class="venta-mesa">🏪 ${v.mesa}</span>
+                        <span class="venta-total">${v.total.toFixed(2)} €</span>
+                    </div>
+                    <div style="color: var(--text-muted); font-size: 0.9rem;">
+                        ${new Date(v.fecha).toLocaleDateString('es-ES')} - ${v.comandas.length} productos
+                    </div>
+                    <div class="venta-click-hint">👁️ Click para ver ticket</div>
+                </div>
+            `).join('');
+        }
+
+        async function mostrarTicketVenta(index) {
+            const venta = state.ventas[index];
+            
+            // Obtener detalles de productos
+            const productosResponse = await fetch('/api/productos');
+            const productos = await productosResponse.json();
+            const productosMap = {};
+            productos.forEach(p => productosMap[p._id] = p);
+            
+            // Construir items del ticket
+            const items = venta.comandas.map(c => {
+                const prod = productosMap[c.producto_id];
+                return {
+                    nombre: prod ? prod.nombre : 'Producto',
+                    cantidad: c.cantidad,
+                    precio: prod ? prod.precio : 0
+                };
+            });
+            
+            const fecha = new Date(venta.fecha);
+            
+            const ticketHTML = `
+                <div class="ticket-header">
+                    <div class="ticket-logo">🏪</div>
+                    <div class="ticket-title">TPV SISTEMA</div>
+                    <div class="ticket-subtitle">Ticket de Venta</div>
+                </div>
+                
+                <div class="ticket-info">
+                    <div class="ticket-info-row">
+                        <span>Fecha:</span>
+                        <span>${fecha.toLocaleDateString('es-ES')}</span>
+                    </div>
+                    <div class="ticket-info-row">
+                        <span>Mesa:</span>
+                        <span><strong>${venta.mesa}</strong></span>
+                    </div>
+                    <div class="ticket-info-row">
+                        <span>Ticket:</span>
+                        <span>#${venta.id}</span>
+                    </div>
+                </div>
+                
+                <div class="ticket-items">
+                    ${items.map(item => `
+                        <div class="ticket-item">
+                            <span class="ticket-item-desc">${item.nombre}</span>
+                            <span class="ticket-item-qty">x${item.cantidad}</span>
+                            <span class="ticket-item-price">${(item.precio * item.cantidad).toFixed(2)} €</span>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <div class="ticket-total">
+                    <div class="ticket-total-row final">
+                        <span>TOTAL:</span>
+                        <span>${venta.total.toFixed(2)} €</span>
+                    </div>
+                </div>
+                
+                <div class="ticket-footer">
+                    <p>¡Gracias por su visita!</p>
+                </div>
+            `;
+            
+            document.getElementById('ticket-content').innerHTML = ticketHTML;
+            document.getElementById('modal-ticket').classList.add('active');
+        }
+
+        async function mostrarHistorialCompleto() {
+            try {
+                const response = await fetch('/api/ventas');
+                const ventas = await response.json();
+                
+                // Agrupar por fecha
+                const ventasPorFecha = {};
+                ventas.forEach(v => {
+                    const fecha = new Date(v.fecha).toLocaleDateString('es-ES');
+                    if (!ventasPorFecha[fecha]) {
+                        ventasPorFecha[fecha] = [];
+                    }
+                    ventasPorFecha[fecha].push(v);
+                });
+                
+                // Generar HTML
+                let html = '';
+                Object.keys(ventasPorFecha).sort((a, b) => {
+                    return new Date(b.split('/').reverse().join('-')) - new Date(a.split('/').reverse().join('-'));
+                }).forEach(fecha => {
+                    const ventasDia = ventasPorFecha[fecha];
+                    const totalDia = ventasDia.reduce((sum, v) => sum + v.total, 0);
+                    
+                    html += `
+                        <div class="historial-dia">
+                            <div class="historial-dia-header">
+                                <h4>📅 ${fecha}</h4>
+                                <span class="historial-dia-total">${ventasDia.length} ventas - ${totalDia.toFixed(2)} €</span>
+                            </div>
+                            <div class="historial-dia-ventas">
+                                ${ventasDia.map(v => `
+                                    <div class="historial-venta-item">
+                                        <span class="historial-mesa">${v.mesa}</span>
+                                        <span class="historial-productos">${v.comandas.length} productos</span>
+                                        <span class="historial-total">${v.total.toFixed(2)} €</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                document.getElementById('historial-content').innerHTML = html || '<div class="empty-state">No hay ventas registradas</div>';
+                document.getElementById('modal-historial').classList.add('active');
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarNotificacion('Error al cargar historial', 'error');
+            }
+        }
+
+        function cerrarHistorial() {
+            document.getElementById('modal-historial').classList.remove('active');
+        }
+
+        async function cargarMetricas() {
+            try {
+                const response = await fetch('/api/metricas/resumen');
+                const metricas = await response.json();
+                
+                document.getElementById('metricas-cards').innerHTML = `
+                    <div class="metrica-card">
+                        <div class="metrica-label">Total Ingresos</div>
+                        <div class="metrica-valor">${metricas.total_ingresos.toFixed(2)} €</div>
+                    </div>
+                    <div class="metrica-card">
+                        <div class="metrica-label">Número de Ventas</div>
+                        <div class="metrica-valor">${metricas.total_ventas}</div>
+                    </div>
+                    <div class="metrica-card">
+                        <div class="metrica-label">Productos Vendidos</div>
+                        <div class="metrica-valor">${metricas.productos_vendidos}</div>
+                    </div>
+                    <div class="metrica-card">
+                        <div class="metrica-label">Ticket Promedio</div>
+                        <div class="metrica-valor">${metricas.promedio_venta.toFixed(2)} €</div>
+                    </div>
+                `;
+                
+                // Cargar gráficas
+                await cargarGraficaMesas();
+                await cargarGraficaProductos();
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        let graficaMesas = null;
+        let graficaProductos = null;
+
+        async function cargarGraficaMesas() {
+            try {
+                const response = await fetch('/api/metricas/top-mesas');
+                const mesas = await response.json();
+                
+                const ctx = document.getElementById('grafica-mesas');
+                
+                // Destruir gráfica anterior si existe
+                if (graficaMesas) {
+                    graficaMesas.destroy();
+                }
+                
+                graficaMesas = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: mesas.map(m => m.mesa),
+                        datasets: [{
+                            label: 'Ingresos (€)',
+                            data: mesas.map(m => m.total_ingresos),
+                            backgroundColor: 'rgba(37, 99, 235, 0.7)',
+                            borderColor: 'rgba(37, 99, 235, 1)',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return value.toFixed(2) + ' €';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Error cargando gráfica de mesas:', error);
+            }
+        }
+
+        async function cargarGraficaProductos() {
+            try {
+                // Obtener productos más vendidos de las comandas
+                const response = await fetch('/api/metricas/productos');
+                const productos = await response.json();
+                
+                // Obtener nombres de productos desde MongoDB
+                const productosResponse = await fetch('/api/productos');
+                const productosDB = await productosResponse.json();
+                
+                // Crear un mapa de ID -> Nombre
+                const productosMap = {};
+                productosDB.forEach(p => {
+                    productosMap[p._id] = p.nombre;
+                });
+                
+                // Top 5 productos
+                const top5 = productos.slice(0, 5);
+                
+                const ctx = document.getElementById('grafica-productos');
+                
+                // Destruir gráfica anterior si existe
+                if (graficaProductos) {
+                    graficaProductos.destroy();
+                }
+                
+                graficaProductos = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: top5.map(p => productosMap[p.producto_id] || 'Producto'),
+                        datasets: [{
+                            label: 'Cantidad Vendida',
+                            data: top5.map(p => p.total_cantidad),
+                            backgroundColor: [
+                                'rgba(37, 99, 235, 0.7)',
+                                'rgba(16, 185, 129, 0.7)',
+                                'rgba(245, 158, 11, 0.7)',
+                                'rgba(239, 68, 68, 0.7)',
+                                'rgba(139, 92, 246, 0.7)'
+                            ],
+                            borderColor: [
+                                'rgba(37, 99, 235, 1)',
+                                'rgba(16, 185, 129, 1)',
+                                'rgba(245, 158, 11, 1)',
+                                'rgba(239, 68, 68, 1)',
+                                'rgba(139, 92, 246, 1)'
+                            ],
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Error cargando gráfica de productos:', error);
+            }
+        }
+    </script>
+</body>
+</html>

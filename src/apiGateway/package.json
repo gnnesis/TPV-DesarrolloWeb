@@ -1,7 +1,7 @@
 {
-  "name": "micro-productos",
+  "name": "api-gateway",
   "version": "1.0.0",
-  "description": "Microservicio de Productos para TPV",
+  "description": "API Gateway para TPV - Enruta peticiones a microservicios",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
@@ -10,7 +10,7 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.18.2",
-    "mongoose": "^8.0.1"
+    "http-proxy-middleware": "^2.0.6"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
