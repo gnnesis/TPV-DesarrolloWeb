@@ -6,11 +6,16 @@ const path = require('path');
 const app = express();
 const port = 8080;
 
+// URLs de servicios (variables de entorno para Docker, fallback a localhost)
+const VENTAS_URL = process.env.VENTAS_URL || 'http://localhost:5001';
+const PRODUCTOS_URL = process.env.PRODUCTOS_URL || 'http://localhost:5002';
+const METRICAS_URL = process.env.METRICAS_URL || 'http://localhost:5003';
+
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, '../frontend')));
+app.use(express.static(path.join(__dirname, process.env.FRONTEND_PATH || '../frontend')));
 
 // Logging middleware
 app.use((req, res, next) => {
@@ -24,16 +29,16 @@ app.get('/api/status', (req, res) => {
         status: 'ok',
         gateway: 'API Gateway (Express)',
         services: {
-            ventas: 'http://localhost:5001',
-            productos: 'http://localhost:5002',
-            metricas: 'http://localhost:5003'
+            ventas: VENTAS_URL,
+            productos: PRODUCTOS_URL,
+            metricas: METRICAS_URL
         }
     });
 });
 
 // Proxy a Microservicio de Ventas (FastAPI en puerto 5001)
 app.use('/api/ventas', createProxyMiddleware({
-    target: 'http://localhost:5001',
+    target: VENTAS_URL,
     changeOrigin: true,
     pathRewrite: {
         '^/api/ventas': '/ventas'
@@ -59,7 +64,7 @@ app.use('/api/ventas', createProxyMiddleware({
 
 // Proxy a Microservicio de Productos (Express en puerto 5002)
 app.use('/api/productos', createProxyMiddleware({
-    target: 'http://localhost:5002',
+    target: PRODUCTOS_URL,
     changeOrigin: true,
     pathRewrite: {
         '^/api/productos': '/productos'
@@ -85,7 +90,7 @@ app.use('/api/productos', createProxyMiddleware({
 
 // Proxy a Microservicio de Métricas (FastAPI en puerto 5003)
 app.use('/api/metricas', createProxyMiddleware({
-    target: 'http://localhost:5003',
+    target: METRICAS_URL,
     changeOrigin: true,
     pathRewrite: {
         '^/api/metricas': '/metricas'
@@ -108,11 +113,6 @@ app.use('/api/metricas', createProxyMiddleware({
         res.status(500).json({ error: 'Error proxying to Metricas service' });
     }
 }));
-
-// Ruta raíz que sirve el frontend
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/index.html'));
-});
 
 // Manejo de errores global
 app.use((err, req, res, next) => {

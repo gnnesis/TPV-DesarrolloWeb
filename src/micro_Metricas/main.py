@@ -1,13 +1,14 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List, Dict, Any
-from datetime import date, datetime, timedelta
-from sqlalchemy import create_engine, Column, Integer, String, Date, Float, ForeignKey, func
+from typing import List
+from datetime import date, time
+from sqlalchemy import create_engine, Column, Integer, String, Date, Float, ForeignKey, func, Time
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship, Session
+import os
 
 # Configurar la URL de la base de datos
-DATABASE_URL = "mysql+mysqlconnector://root:root@localhost/tpv_relacional"
+DATABASE_URL = os.getenv("DATABASE_URL", "mysql+mysqlconnector://root:root@localhost/tpv_relacional")
 
 # SQLAlchemy setup
 engine = create_engine(DATABASE_URL, echo=False)
@@ -27,6 +28,8 @@ class VentaModel(Base):
     id = Column(Integer, primary_key=True, index=True)
     mesa = Column(String(20), nullable=False)
     fecha = Column(Date, nullable=False, default=date.today)
+    hora = Column(Time, nullable=False, default=lambda: datetime.now().time())
+    metodo_pago = Column(String(20), nullable=False, default="efectivo")
     total = Column(Float, nullable=False)
     comandas = relationship("ComandaModel", backref="venta", cascade="all, delete-orphan")
 

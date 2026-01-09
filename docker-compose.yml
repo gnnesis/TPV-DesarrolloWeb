@@ -1,0 +1,118 @@
+services:
+  # Base de datos MySQL para Ventas y Métricas
+  mysql:
+    image: mysql:8.0
+    container_name: tpv-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: tpv_relacional
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tpv-network
+
+  # Base de datos MongoDB para Productos
+  mongodb:
+    image: mongo:7.0
+    container_name: tpv-mongodb
+    command: ["mongod", "--quiet", "--logpath", "/dev/null"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tpv-network
+
+  # Microservicio de Ventas (FastAPI + MySQL)
+  ventas:
+    build:
+      context: ./src/micro_Ventas
+      dockerfile: Dockerfile
+    container_name: tpv-ventas
+    ports:
+      - "5001:5001"
+    environment:
+      DATABASE_URL: "mysql+mysqlconnector://root:root@mysql/tpv_relacional"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - tpv-network
+    restart: unless-stopped
+
+  # Microservicio de Productos (Node.js + MongoDB)
+  productos:
+    build:
+      context: ./src/micro_Productos
+      dockerfile: Dockerfile
+    container_name: tpv-productos
+    ports:
+      - "5002:5002"
+    environment:
+      MONGODB_URL: "mongodb://mongodb:27017/tpv_nosql"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - tpv-network
+    restart: unless-stopped
+
+  # Microservicio de Métricas (FastAPI + MySQL)
+  metricas:
+    build:
+      context: ./src/micro_Metricas
+      dockerfile: Dockerfile
+    container_name: tpv-metricas
+    ports:
+      - "5003:5003"
+    environment:
+      DATABASE_URL: "mysql+mysqlconnector://root:root@mysql/tpv_relacional"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - tpv-network
+    restart: unless-stopped
+
+  # API Gateway (Node.js)
+  gateway:
+    build:
+      context: ./src/apiGateway
+      dockerfile: Dockerfile
+    container_name: tpv-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      VENTAS_URL: "http://ventas:5001"
+      PRODUCTOS_URL: "http://productos:5002"
+      METRICAS_URL: "http://metricas:5003"
+      FRONTEND_PATH: "frontend"
+    volumes:
+      - ./src/frontend:/app/frontend:ro
+    depends_on:
+      - ventas
+      - productos
+      - metricas
+    networks:
+      - tpv-network
+    restart: unless-stopped
+
+networks:
+  tpv-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  mongodb_data:

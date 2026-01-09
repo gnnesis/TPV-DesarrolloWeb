@@ -1,30 +1,97 @@
-# TPV - Sistema de Punto de Venta (FastAPI + Express + Node.js)
+# TPV GB - Sistema de Punto de Venta (Microservicios)
 
-Sistema de Punto de Venta basado en microservicios para gestión de ventas, productos y analíticas. **Usando FastAPI y Express**.
-
----
-
-## Arquitectura
-
-| Componente | Tecnología | Puerto |
-|---|---|---|
-| **API Gateway** | Node.js + Express | 8080 |
-| **Microservicio Ventas** | FastAPI (Python) | 5001 |
-| **Microservicio Productos** | Node.js + Express | 5002 |
-| **Microservicio Métricas** | FastAPI (Python) | 5003 |
-| **Base de datos relacional** | MySQL | 3306 |
-| **Base de datos no relacional** | MongoDB | 27017 |
+Sistema de Punto de Venta basado en **arquitectura de microservicios** para gestión de ventas, productos y analíticas en tiempo real.
 
 ---
 
-## Software Necesario
+##  Arquitectura de Microservicios
 
-1. **Python 3.10+**
-2. **Node.js v16+**
-3. **MySQL Server**
-4. **MongoDB**
+| Componente | Tecnología | Puerto | Base de Datos |
+|---|---|---|---|
+| **API Gateway** | Node.js + Express | 8080 | - |
+| **Microservicio Ventas** | FastAPI (Python) | 5001 | MySQL |
+| **Microservicio Productos** | Node.js + Express | 5002 | MongoDB |
+| **Microservicio Métricas** | FastAPI (Python) | 5003 | MySQL |
+| **Base de datos relacional** | MySQL 8.0 | 3306 | - |
+| **Base de datos NoSQL** | MongoDB 7.0 | 27017 | - |
 
-Verifica las instalaciones:
+### Características principales:
+-  **2 microservicios en Python** (Ventas y Métricas con FastAPI)
+-  **2 microservicios en Node.js** (API Gateway y Productos con Express)
+-  **API RESTful** con documentación OpenAPI 3.0 automática
+-  **Base de datos híbrida**: MySQL (relacional) + MongoDB (NoSQL)
+-  **API Gateway centralizado** que enruta a los microservicios
+-  **SPA (Single Page Application)** con HTML5 + JavaScript vanilla
+-  **Docker Compose** para orquestación de contenedores
+
+---
+
+## Estructura del Proyecto
+
+```
+TPV-DesarrolloWeb/
+├── presentation/           # Presentación PowerPoint del proyecto
+├── src/
+│   ├── apiGateway/        # API Gateway (Express) - Puerto 8080
+│   ├── micro_Ventas/      # Microservicio Ventas (FastAPI) - Puerto 5001
+│   ├── micro_Productos/   # Microservicio Productos (Express) - Puerto 5002
+│   ├── micro_Metricas/    # Microservicio Métricas (FastAPI) - Puerto 5003
+│   └── frontend/          # Frontend SPA (HTML5 + CSS + JavaScript)
+├── docker-compose.yml     # Orquestación de contenedores
+├── DOCKER_GUIDE.md        # Guía detallada de Docker
+└── README.md              # Este archivo
+```
+
+---
+
+## Instalación y Ejecución
+
+### Método 1: Docker Compose (RECOMENDADO)
+
+**Software necesario:**
+- Docker Desktop (incluye Docker y Docker Compose)
+  - Descarga: https://www.docker.com/products/docker-desktop
+
+#### Pasos para ejecutar:
+
+1. **Abrir Docker Desktop** y esperar a que se inicie completamente
+
+2. **Ejecutar el proyecto** (desde la raíz del proyecto):
+```bash
+docker-compose up
+```
+
+3. **Acceder a la aplicación:**
+   - Frontend: http://localhost:8080
+   - API Ventas: http://localhost:5001/docs
+   - API Métricas: http://localhost:5003/docs
+
+**Comandos útiles:**
+```bash
+# Ejecutar en segundo plano
+docker-compose up -d
+
+# Ver logs
+docker-compose logs -f
+
+# Detener todo
+docker-compose down
+
+# Reiniciar (con reconstrucción)
+docker-compose up --build
+```
+
+---
+
+### Método 2: Ejecución Manual (Desarrollo)
+
+**Software necesario:**
+1. **Python 3.10+** - https://www.python.org/downloads/
+2. **Node.js v16+** - https://nodejs.org/
+3. **MySQL 8.0** - https://dev.mysql.com/downloads/mysql/
+4. **MongoDB 7.0** - https://www.mongodb.com/try/download/community
+
+**Verificar instalaciones:**
 ```bash
 python --version
 node --version
@@ -32,101 +99,75 @@ mysql --version
 mongod --version
 ```
 
----
-
-## 📂 Estructura del Proyecto
-
-```
-src/
-├── apiGateway/         # API Gateway (Express)
-├── micro_Ventas/       # Microservicio Ventas (FastAPI)
-├── micro_Productos/    # Microservicio Productos (Express)
-├── micro_Metricas/     # Microservicio Métricas (FastAPI)
-└── frontend/           # Frontend (HTML + CSS + JS)
-```
-
----
-
-## 🚀 Instalación Rápida
-
-### 1. Crear bases de datos
+#### Paso 1: Crear bases de datos
 
 **MySQL:**
-Abre una terminal y conecta a MySQL:
 ```bash
 mysql -u root -p
-password: root
 ```
-Crea la base de datos (las tablas se crearán automáticamente):
 ```sql
 CREATE DATABASE IF NOT EXISTS tpv_relacional;
-SHOW DATABASES;
 EXIT;
 ```
 
 **MongoDB:**
-Verifica que el servicio MongoDB esté corriendo (en PowerShell):
-```powershell
-Get-Service MongoDB
-```
-Si el Status es "Running", está listo. Si no está corriendo, inícialo:
-```powershell
-net start MongoDB
-```
-La base de datos y colecciones se crearán automáticamente al ejecutar los microservicios.
+Se crea automáticamente al arrancar el microservicio de productos.
 
-### 2. Instalar dependencias
+#### Paso 2: Instalar dependencias
 
-**API Gateway y Productos (Node.js):**
-```powershell
-cd src/apiGateway; npm install
-cd src/micro_Productos; npm install
+**Microservicios Node.js:**
+```bash
+cd src/apiGateway
+npm install
+
+cd ../micro_Productos
+npm install
 ```
 
-**Ventas y Métricas (FastAPI):**
-```powershell
-cd src/micro_Ventas; pip install -r requirements.txt
-cd src/micro_Metricas; pip install -r requirements.txt
+**Microservicios Python:**
+```bash
+cd src/micro_Ventas
+pip install -r requirements.txt
+
+cd ../micro_Metricas
+pip install -r requirements.txt
 ```
 
-### 3. Arrancar servicios
+#### Paso 3: Arrancar servicios
 
-**Necesitas abrir 4 terminales separadas (una para cada microservicio):**
+**Abrir 4 terminales separadas:**
 
-```powershell
+```bash
 # Terminal 1: API Gateway
-cd src/apiGateway; npm start
+cd src/apiGateway
+npm start
 
 # Terminal 2: Microservicio Productos
-cd src/micro_Productos; npm start
+cd src/micro_Productos
+npm start
 
 # Terminal 3: Microservicio Ventas
-cd src/micro_Ventas; python -m uvicorn main:app --reload --port 5001
+cd src/micro_Ventas
+uvicorn main:app --reload --port 5001
 
 # Terminal 4: Microservicio Métricas
-cd src/micro_Metricas; python -m uvicorn main:app --reload --port 5003
+cd src/micro_Metricas
+uvicorn main:app --reload --port 5003
 ```
 
+#### Paso 4: Acceder a la aplicación
+- **Frontend:** http://localhost:8080
+- **API Ventas:** http://localhost:5001/docs
+- **API Métricas:** http://localhost:5003/docs
 
 ---
 
-## 🌐 Acceder a la Aplicación
+##  Documentación Adicional
 
-**Frontend:** http://localhost:8080
-
-**Documentación APIs:**
-- Ventas: http://localhost:5001/docs
-- Métricas: http://localhost:5003/docs
+- [DOCKER_GUIDE.md](DOCKER_GUIDE.md) - Guía completa de Docker Compose
 
 ---
 
-## 📝 Cambios respecto a la versión original
+##  Proyecto de la Asignatura
 
-✅ **Eliminado**: Flask de todos los microservicios
-✅ **Añadido**: FastAPI para Ventas y Métricas
-✅ **Mantenido**: Express para API Gateway y Productos
-✅ **Mejorado**: Documentación OpenAPI automática
-
----
-
-Proyecto de la asignatura de Desarrollo web - Año 2025-2026
+**Desarrollo Web - Curso 2025-2026**

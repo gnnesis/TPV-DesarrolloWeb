@@ -28,36 +28,25 @@
     <!-- Modal de pago -->
     <div class="modal-overlay" id="modal-pago">
         <div class="modal modal-pago">
-            <div class="modal-header">
-                <h3 class="modal-title">Procesar Pago</h3>
-            </div>
-            
+            <div class="modal-header"><h3 class="modal-title">Procesar Pago</h3></div>
             <div class="pago-info">
-                <div class="pago-mesa" id="pago-mesa">Mesa 1</div>
-                <div class="pago-total" id="pago-total">0.00 €</div>
+                <div class="pago-mesa" id="pago-mesa"></div>
+                <div class="pago-total" id="pago-total"></div>
             </div>
-
             <div class="metodo-pago">
-                <button class="metodo-btn" id="btn-tarjeta" onclick="seleccionarMetodo('tarjeta')">
-                    <span class="metodo-label">Tarjeta</span>
-                </button>
-                <button class="metodo-btn" id="btn-efectivo" onclick="seleccionarMetodo('efectivo')">
-                    <span class="metodo-label">Efectivo</span>
-                </button>
+                <button class="metodo-btn" id="btn-tarjeta" onclick="seleccionarMetodo('tarjeta')">Tarjeta</button>
+                <button class="metodo-btn" id="btn-efectivo" onclick="seleccionarMetodo('efectivo')">Efectivo</button>
             </div>
-
             <div class="efectivo-section" id="efectivo-section" style="display: none;">
                 <label>Dinero recibido:</label>
                 <input type="number" id="dinero-recibido" placeholder="0.00" step="0.01" min="0">
                 <div class="cambio-info" id="cambio-info" style="display: none;">
-                    <span>Cambio:</span>
-                    <span class="cambio-cantidad" id="cambio-cantidad">0.00 €</span>
+                    <span>Cambio: <span class="cambio-cantidad" id="cambio-cantidad"></span></span>
                 </div>
             </div>
-
             <div class="modal-actions">
                 <button class="modal-btn modal-btn-cancel" onclick="cerrarModalPago()">Cancelar</button>
-                <button class="modal-btn modal-btn-confirm" id="btn-confirmar-pago" onclick="confirmarPago()" disabled>Confirmar Pago</button>
+                <button class="modal-btn modal-btn-confirm" id="btn-confirmar-pago" onclick="confirmarPago()" disabled>Confirmar</button>
             </div>
         </div>
     </div>
@@ -459,45 +448,22 @@
         // Comanda
         function agregarAComanda(productoId) {
             const producto = state.productos.find(p => p._id === productoId);
-            const cantidadSolicitada = state.cantidadActual;
+            const cantidad = state.cantidadActual;
             
-            // Si la cantidad es 0, no hacer nada
-            if (cantidadSolicitada === 0) {
-                mostrarNotificacion('Selecciona una cantidad en el numpad', 'warning');
-                return;
-            }
-            
-            if (!producto || producto.stock <= 0) {
-                mostrarNotificacion('Producto sin stock', 'warning');
-                return;
-            }
-
-            if (cantidadSolicitada > producto.stock) {
-                mostrarNotificacion(`Stock insuficiente. Disponible: ${producto.stock}`, 'warning');
-                return;
-            }
+            if (!cantidad) return mostrarNotificacion('Selecciona una cantidad', 'warning');
+            if (!producto || producto.stock <= 0) return mostrarNotificacion('Producto sin stock', 'warning');
+            if (cantidad > producto.stock) return mostrarNotificacion(`Stock insuficiente: ${producto.stock}`, 'warning');
 
             const comandaActual = getComandaActual();
-            const itemExistente = comandaActual.find(i => i.producto_id === productoId);
+            const item = comandaActual.find(i => i.producto_id === productoId);
             
-            if (itemExistente) {
-                const nuevaCantidad = itemExistente.cantidad + cantidadSolicitada;
-                if (nuevaCantidad <= producto.stock) {
-                    itemExistente.cantidad = nuevaCantidad;
-                } else {
-                    mostrarNotificacion(`Stock insuficiente. Disponible: ${producto.stock}`, 'warning');
-                    return;
-                }
+            if (item) {
+                if (item.cantidad + cantidad > producto.stock) return mostrarNotificacion(`Stock insuficiente: ${producto.stock}`, 'warning');
+                item.cantidad += cantidad;
             } else {
-                comandaActual.push({
-                    producto_id: productoId,
-                    nombre: producto.nombre,
-                    precio: producto.precio,
-                    cantidad: cantidadSolicitada
-                });
+                comandaActual.push({ producto_id: productoId, nombre: producto.nombre, precio: producto.precio, cantidad });
             }
             
-            // Resetear cantidad a 1
             numpadClear();
             renderComanda();
             actualizarIndicadoresMesas();
@@ -644,69 +610,27 @@
             const fecha = ahora.toLocaleDateString('es-ES');
             const hora = ahora.toLocaleTimeString('es-ES');
             
-            const ticketHTML = `
+            document.getElementById('ticket-content').innerHTML = `
                 <div class="ticket-header">
                     <div class="ticket-logo">🏪</div>
-                    <div class="ticket-title">TPV SISTEMA</div>
-                    <div class="ticket-subtitle">Sistema de Punto de Venta</div>
+                    <div class="ticket-title">TPV GB</div>
                 </div>
-                
                 <div class="ticket-info">
-                    <div class="ticket-info-row">
-                        <span>Fecha:</span>
-                        <span>${fecha}</span>
-                    </div>
-                    <div class="ticket-info-row">
-                        <span>Hora:</span>
-                        <span>${hora}</span>
-                    </div>
-                    <div class="ticket-info-row">
-                        <span>Mesa:</span>
-                        <span><strong>${state.mesaActual}</strong></span>
-                    </div>
+                    <div class="ticket-info-row"><span>Fecha:</span><span>${fecha} ${hora}</span></div>
+                    <div class="ticket-info-row"><span>Mesa:</span><span><strong>${state.mesaActual}</strong></span></div>
                 </div>
-                
                 <div class="ticket-items">
-                    ${items.map(item => `
-                        <div class="ticket-item">
-                            <span class="ticket-item-desc">${item.nombre}</span>
-                            <span class="ticket-item-qty">x${item.cantidad}</span>
-                            <span class="ticket-item-price">${(item.precio * item.cantidad).toFixed(2)} €</span>
-                        </div>
-                    `).join('')}
+                    ${items.map(i => `<div class="ticket-item"><span>${i.nombre} x${i.cantidad}</span><span>${(i.precio * i.cantidad).toFixed(2)} €</span></div>`).join('')}
                 </div>
-                
                 <div class="ticket-total">
-                    <div class="ticket-total-row final">
-                        <span>TOTAL:</span>
-                        <span>${total.toFixed(2)} €</span>
-                    </div>
+                    <div class="ticket-total-row final"><span>TOTAL:</span><span>${total.toFixed(2)} €</span></div>
                 </div>
-                
                 <div class="ticket-pago">
-                    <div class="ticket-pago-row">
-                        <span>Método de pago:</span>
-                        <span><strong>${metodo === 'tarjeta' ? 'Tarjeta' : 'Efectivo'}</strong></span>
-                    </div>
-                    ${metodo === 'efectivo' ? `
-                        <div class="ticket-pago-row">
-                            <span>Recibido:</span>
-                            <span>${recibido.toFixed(2)} €</span>
-                        </div>
-                        <div class="ticket-pago-row">
-                            <span>Cambio:</span>
-                            <span><strong>${cambio.toFixed(2)} €</strong></span>
-                        </div>
-                    ` : ''}
+                    <div class="ticket-pago-row"><span>Pago:</span><span><strong>${metodo === 'tarjeta' ? 'Tarjeta' : 'Efectivo'}</strong></span></div>
+                    ${metodo === 'efectivo' ? `<div class="ticket-pago-row"><span>Cambio:</span><span>${cambio.toFixed(2)} €</span></div>` : ''}
                 </div>
-                
-                <div class="ticket-footer">
-                    <p>¡Gracias por su visita!</p>
-                    <p>Ticket #${Date.now().toString().slice(-6)}</p>
-                </div>
+                <div class="ticket-footer">¡Gracias por su visita!</div>
             `;
-            
-            document.getElementById('ticket-content').innerHTML = ticketHTML;
             document.getElementById('modal-ticket').classList.add('active');
         }
 
@@ -823,132 +747,76 @@
             lista.innerHTML = state.ventas.slice(0, 5).map((v, index) => `
                 <div class="venta-item clickeable" onclick="mostrarTicketVenta(${index})">
                     <div class="venta-header">
-                        <span class="venta-mesa">🏪 ${v.mesa}</span>
+                        <span class="venta-mesa">${v.mesa}</span>
                         <span class="venta-total">${v.total.toFixed(2)} €</span>
                     </div>
                     <div style="color: var(--text-muted); font-size: 0.9rem;">
                         ${new Date(v.fecha).toLocaleDateString('es-ES')} - ${v.comandas.length} productos
                     </div>
-                    <div class="venta-click-hint">👁️ Click para ver ticket</div>
+                    <div class="venta-click-hint">Click para ver ticket</div>
                 </div>
             `).join('');
         }
 
         async function mostrarTicketVenta(index) {
             const venta = state.ventas[index];
-            
-            // Obtener detalles de productos
-            const productosResponse = await fetch('/api/productos');
-            const productos = await productosResponse.json();
+            const productos = await fetch('/api/productos').then(r => r.json());
             const productosMap = {};
             productos.forEach(p => productosMap[p._id] = p);
             
-            // Construir items del ticket
-            const items = venta.comandas.map(c => {
-                const prod = productosMap[c.producto_id];
-                return {
-                    nombre: prod ? prod.nombre : 'Producto',
-                    cantidad: c.cantidad,
-                    precio: prod ? prod.precio : 0
-                };
-            });
+            const items = venta.comandas.map(c => ({
+                nombre: productosMap[c.producto_id]?.nombre || 'Producto',
+                cantidad: c.cantidad,
+                precio: productosMap[c.producto_id]?.precio || 0
+            }));
             
-            const fecha = new Date(venta.fecha);
+            const fecha = new Date(venta.fecha).toLocaleDateString('es-ES');
+            const hora = venta.hora || '00:00:00';
             
-            const ticketHTML = `
-                <div class="ticket-header">
-                    <div class="ticket-logo">🏪</div>
-                    <div class="ticket-title">TPV SISTEMA</div>
-                    <div class="ticket-subtitle">Ticket de Venta</div>
-                </div>
-                
+            document.getElementById('ticket-content').innerHTML = `
+                <div class="ticket-header"><div class="ticket-logo">🏪</div><div class="ticket-title">TPV GB</div></div>
                 <div class="ticket-info">
-                    <div class="ticket-info-row">
-                        <span>Fecha:</span>
-                        <span>${fecha.toLocaleDateString('es-ES')}</span>
-                    </div>
-                    <div class="ticket-info-row">
-                        <span>Mesa:</span>
-                        <span><strong>${venta.mesa}</strong></span>
-                    </div>
-                    <div class="ticket-info-row">
-                        <span>Ticket:</span>
-                        <span>#${venta.id}</span>
-                    </div>
+                    <div class="ticket-info-row"><span>Fecha:</span><span>${fecha} ${hora}</span></div>
+                    <div class="ticket-info-row"><span>Mesa:</span><span><strong>${venta.mesa}</strong></span></div>
+                    <div class="ticket-info-row"><span>Ticket:</span><span>#${venta.id}</span></div>
                 </div>
-                
                 <div class="ticket-items">
-                    ${items.map(item => `
-                        <div class="ticket-item">
-                            <span class="ticket-item-desc">${item.nombre}</span>
-                            <span class="ticket-item-qty">x${item.cantidad}</span>
-                            <span class="ticket-item-price">${(item.precio * item.cantidad).toFixed(2)} €</span>
-                        </div>
-                    `).join('')}
+                    ${items.map(i => `<div class="ticket-item"><span>${i.nombre} x${i.cantidad}</span><span>${(i.precio * i.cantidad).toFixed(2)} €</span></div>`).join('')}
                 </div>
-                
-                <div class="ticket-total">
-                    <div class="ticket-total-row final">
-                        <span>TOTAL:</span>
-                        <span>${venta.total.toFixed(2)} €</span>
-                    </div>
-                </div>
-                
-                <div class="ticket-footer">
-                    <p>¡Gracias por su visita!</p>
-                </div>
+                <div class="ticket-total"><div class="ticket-total-row final"><span>TOTAL:</span><span>${venta.total.toFixed(2)} €</span></div></div>
+                <div class="ticket-footer">¡Gracias por su visita!</div>
             `;
-            
-            document.getElementById('ticket-content').innerHTML = ticketHTML;
             document.getElementById('modal-ticket').classList.add('active');
         }
 
         async function mostrarHistorialCompleto() {
             try {
-                const response = await fetch('/api/ventas');
-                const ventas = await response.json();
-                
-                // Agrupar por fecha
+                const ventas = await fetch('/api/ventas').then(r => r.json());
                 const ventasPorFecha = {};
                 ventas.forEach(v => {
                     const fecha = new Date(v.fecha).toLocaleDateString('es-ES');
-                    if (!ventasPorFecha[fecha]) {
-                        ventasPorFecha[fecha] = [];
-                    }
+                    if (!ventasPorFecha[fecha]) ventasPorFecha[fecha] = [];
                     ventasPorFecha[fecha].push(v);
                 });
                 
-                // Generar HTML
-                let html = '';
-                Object.keys(ventasPorFecha).sort((a, b) => {
-                    return new Date(b.split('/').reverse().join('-')) - new Date(a.split('/').reverse().join('-'));
-                }).forEach(fecha => {
+                const html = Object.keys(ventasPorFecha).sort((a, b) => new Date(b.split('/').reverse().join('-')) - new Date(a.split('/').reverse().join('-'))).map(fecha => {
                     const ventasDia = ventasPorFecha[fecha];
                     const totalDia = ventasDia.reduce((sum, v) => sum + v.total, 0);
-                    
-                    html += `
+                    return `
                         <div class="historial-dia">
                             <div class="historial-dia-header">
-                                <h4>📅 ${fecha}</h4>
+                                <h4>${fecha}</h4>
                                 <span class="historial-dia-total">${ventasDia.length} ventas - ${totalDia.toFixed(2)} €</span>
                             </div>
                             <div class="historial-dia-ventas">
-                                ${ventasDia.map(v => `
-                                    <div class="historial-venta-item">
-                                        <span class="historial-mesa">${v.mesa}</span>
-                                        <span class="historial-productos">${v.comandas.length} productos</span>
-                                        <span class="historial-total">${v.total.toFixed(2)} €</span>
-                                    </div>
-                                `).join('')}
+                                ${ventasDia.map(v => `<div class="historial-venta-item"><span>${v.mesa}</span><span>${v.comandas.length} items</span><span>${v.total.toFixed(2)} €</span></div>`).join('')}
                             </div>
-                        </div>
-                    `;
-                });
+                        </div>`;
+                }).join('');
                 
-                document.getElementById('historial-content').innerHTML = html || '<div class="empty-state">No hay ventas registradas</div>';
+                document.getElementById('historial-content').innerHTML = html || '<div class="empty-state">No hay ventas</div>';
                 document.getElementById('modal-historial').classList.add('active');
             } catch (error) {
-                console.error('Error:', error);
                 mostrarNotificacion('Error al cargar historial', 'error');
             }
         }

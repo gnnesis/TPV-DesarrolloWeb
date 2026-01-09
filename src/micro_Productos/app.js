@@ -17,15 +17,18 @@ app.use((req, res, next) => {
 });
 
 // Conexión a MongoDB con opciones mejoradas
-const mongoURL = 'mongodb://localhost:27017/tpv_nosql';
+const mongoURL = process.env.MONGODB_URL || 'mongodb://localhost:27017/tpv_nosql';
 console.log(`🔗 Intentando conectar a MongoDB: ${mongoURL}`);
 
 mongoose.connect(mongoURL, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
     serverSelectionTimeoutMS: 5000
 })
-    .then(() => console.log('✅ Conectado a MongoDB'))
+    .then(async () => {
+        console.log('✅ Conectado a MongoDB');
+        // Inicializar productos por defecto
+        const inicializarProductos = require('./seed');
+        await inicializarProductos();
+    })
     .catch(err => {
         console.error('❌ Error conectando a MongoDB:', err.message);
         console.error('⚠️  Asegúrate que mongod está ejecutándose');
